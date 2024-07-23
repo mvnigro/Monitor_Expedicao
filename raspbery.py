@@ -1,5 +1,5 @@
 import os
-import pyodbc
+import pymysql
 import schedule
 import time
 from datetime import datetime
@@ -11,8 +11,8 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# Configurações do SQL Server
-SERVER = os.environ.get('SERVER')
+# Configurações do MySQL
+HOST = os.environ.get('SERVER')
 DATABASE = os.environ.get('DATABASE')
 USERNAME = os.environ.get('DB_USERNAME')
 PASSWORD = os.environ.get('DB_PASSWORD')
@@ -22,13 +22,19 @@ app = Flask(__name__, static_url_path='/static')
 # Configuração do Flask-Caching
 cache = Cache(app, config={'CACHE_TYPE': 'simple'})
 
-def conectar_sql_server():
-    conn_str = f'DRIVER={{FreeTDS}};SERVER={SERVER};PORT=1433;DATABASE={DATABASE};UID={USERNAME};PWD={PASSWORD};TDS_Version=8.0;'
-    return pyodbc.connect(conn_str)
+def conectar_mysql():
+    return pymysql.connect(
+        host=HOST,
+        user=USERNAME,
+        password=PASSWORD,
+        database=DATABASE,
+        charset='utf8mb4',
+        cursorclass=pymysql.cursors.DictCursor
+    )
 
 @cache.memoize(timeout=60)
 def obter_contagens():
-    conn = conectar_sql_server()
+    conn = conectar_mysql()
     cursor = conn.cursor()
     queries = {
         'pedidos_entregar': """
@@ -47,12 +53,12 @@ def obter_contagens():
         AND (Ped_Status <> 'Baixado' OR Ped_Status IS NULL)
         AND (Ped_Status <> 'Saida' OR Ped_Status IS NULL)
         AND (Ped_Status <> 'Pedido' OR Ped_Status IS NULL)
-        AND (DATEADD(day, 3, Ped_Data) >= DATEADD(day, -30, CAST(GETDATE() AS date)))
-        AND (DATEADD(day, 3, Ped_Data) < DATEADD(day, 1, CAST(GETDATE() AS date)))
+        AND (DATE_ADD(Ped_Data, INTERVAL 3 DAY) >= DATE_SUB(CURDATE(), INTERVAL 30 DAY))
+        AND (DATE_ADD(Ped_Data, INTERVAL 3 DAY) < DATE_ADD(CURDATE(), INTERVAL 1 DAY))
         AND (Cli_Nome <> 'FUNCIONARIOS DA ELMAR ME' OR Cli_Nome IS NULL)
         AND (Transportadora <> 'O PROPRIO')
-        AND (DATEADD(day, 3, ColetaDt) >= DATEADD(day, -20, CAST(GETDATE() AS date)))
-        AND (DATEADD(day, 3, ColetaDt) < DATEADD(day, 1, CAST(GETDATE() AS date)))
+        AND (DATE_ADD(ColetaDt, INTERVAL 3 DAY) >= DATE_SUB(CURDATE(), INTERVAL 20 DAY))
+        AND (DATE_ADD(ColetaDt, INTERVAL 3 DAY) < DATE_ADD(CURDATE(), INTERVAL 1 DAY))
         """,
         'pedidos_retirar': """
         SELECT COUNT(*) AS count
@@ -78,17 +84,17 @@ def obter_contagens():
     resultados = {}
     for nome, query in queries.items():
         cursor.execute(query)
-        resultados[nome] = cursor.fetchone()[0]
+        resultados[nome] = cursor.fetchone()['count']
     conn.close()
     return resultados
 
 @cache.memoize(timeout=60)
 def obter_pedidos_entregar():
-    conn = conectar_sql_server()
+    conn = conectar_mysql()
     cursor = conn.cursor()
     query = """
-    SELECT TOP 10 Pedido AS numero, Cli_Nome AS cliente, 
-           CONVERT(VARCHAR, Ped_Data, 103) AS data, Ped_Status AS status
+    SELECT Pedido AS numero, Cli_Nome AS cliente, 
+           DATE_FORMAT(Ped_Data, '%d/%m/%Y') AS data, Ped_Status AS status
     FROM dbo.VIEW_PB_Pedidos
     WHERE (ES = 'S')
     AND (Ped_Status <> 'Baixado' OR Ped_Status IS NULL)
@@ -96,32 +102,34 @@ def obter_pedidos_entregar():
     AND (Ped_Status <> 'Saida' OR Ped_Status IS NULL)
     AND (Ped_Status <> 'Pedido' OR Ped_Status IS NULL)
     ORDER BY Ped_Data DESC
+    LIMIT 10
     """
     cursor.execute(query)
-    resultados = [dict(zip([column[0] for column in cursor.description], row)) for row in cursor.fetchall()]
+    resultados = cursor.fetchall()
     conn.close()
     return resultados
 
 @cache.memoize(timeout=60)
 def obter_transportadoras_atrasadas():
-    conn = conectar_sql_server()
+    conn = conectar_mysql()
     cursor = conn.cursor()
     query = """
-    SELECT TOP 10 Transportadora AS nome, Cli_Nome AS cliente, 
-           CONVERT(VARCHAR, DATEADD(day, 3, Ped_Data), 103) AS data_prevista, 
-           DATEDIFF(day, DATEADD(day, 3, Ped_Data), GETDATE()) AS dias_atraso
+    SELECT Transportadora AS nome, Cli_Nome AS cliente, 
+           DATE_FORMAT(DATE_ADD(Ped_Data, INTERVAL 3 DAY), '%d/%m/%Y') AS data_prevista, 
+           DATEDIFF(CURDATE(), DATE_ADD(Ped_Data, INTERVAL 3 DAY)) AS dias_atraso
     FROM dbo.VIEW_PB_Pedidos
     WHERE (ES = 'S')
     AND (Ped_Status <> 'Baixado' OR Ped_Status IS NULL)
     AND (Ped_Status <> 'Saida' OR Ped_Status IS NULL)
     AND (Ped_Status <> 'Pedido' OR Ped_Status IS NULL)
-    AND (DATEADD(day, 3, Ped_Data) < GETDATE())
+    AND (DATE_ADD(Ped_Data, INTERVAL 3 DAY) < CURDATE())
     AND (Cli_Nome <> 'FUNCIONARIOS DA ELMAR ME' OR Cli_Nome IS NULL)
     AND (Transportadora <> 'O PROPRIO')
     ORDER BY dias_atraso DESC
+    LIMIT 10
     """
     cursor.execute(query)
-    resultados = [dict(zip([column[0] for column in cursor.description], row)) for row in cursor.fetchall()]
+    resultados = cursor.fetchall()
     conn.close()
     return resultados
 
