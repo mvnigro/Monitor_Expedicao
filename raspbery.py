@@ -8,7 +8,6 @@ from threading import Thread
 from flask_caching import Cache
 from sqlalchemy import text, func
 from dotenv import load_dotenv
-from urllib.parse import quote_plus
 import logging
 
 load_dotenv()
@@ -28,28 +27,15 @@ app = Flask(__name__, static_url_path='/static')
 # Configuração do Flask-Caching
 cache = Cache(app, config={'CACHE_TYPE': 'simple'})
 
-# Construa a string de conexão corretamente
-params = quote_plus(
-    f'DRIVER={{ODBC Driver 17 for SQL Server}};'
-    f'SERVER={SERVER};'
-    f'DATABASE={DATABASE};'
-    f'UID={USERNAME};'
-    f'PWD={PASSWORD};'
-    'TrustServerCertificate=yes;'
-    'Encrypt=yes;'
-    'Connection Timeout=30;'
-)
-
 def conectar_sql_server():
     conn_str = (
-        f'DRIVER={{ODBC Driver 17 for SQL Server}};'
+        f'DRIVER={{FreeTDS}};'
         f'SERVER={SERVER};'
+        f'PORT=1433;'
         f'DATABASE={DATABASE};'
         f'UID={USERNAME};'
         f'PWD={PASSWORD};'
-        'TrustServerCertificate=yes;'
-        'Encrypt=yes;'
-        'Connection Timeout=30;'
+        'TDS_Version=8.0;'
     )
     logger.debug(f"Tentando conectar ao banco de dados: {SERVER}/{DATABASE}")
     try:
