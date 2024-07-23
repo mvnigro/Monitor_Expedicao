@@ -1,5 +1,5 @@
 import os
-import pymysql
+import pyodbc
 import schedule
 import time
 from datetime import datetime
@@ -8,11 +8,17 @@ from threading import Thread
 from flask_caching import Cache
 from sqlalchemy import text, func
 from dotenv import load_dotenv
+from urllib.parse import quote_plus
+import logging
 
 load_dotenv()
 
-# Configurações do MySQL
-HOST = os.environ.get('SERVER')
+# Configuração de logging
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
+
+# Configurações do SQL Server
+SERVER = os.environ.get('SERVER')
 DATABASE = os.environ.get('DATABASE')
 USERNAME = os.environ.get('DB_USERNAME')
 PASSWORD = os.environ.get('DB_PASSWORD')
@@ -22,19 +28,42 @@ app = Flask(__name__, static_url_path='/static')
 # Configuração do Flask-Caching
 cache = Cache(app, config={'CACHE_TYPE': 'simple'})
 
-def conectar_mysql():
-    return pymysql.connect(
-        host=HOST,
-        user=USERNAME,
-        password=PASSWORD,
-        database=DATABASE,
-        charset='utf8mb4',
-        cursorclass=pymysql.cursors.DictCursor
+# Construa a string de conexão corretamente
+params = quote_plus(
+    f'DRIVER={{ODBC Driver 17 for SQL Server}};'
+    f'SERVER={SERVER};'
+    f'DATABASE={DATABASE};'
+    f'UID={USERNAME};'
+    f'PWD={PASSWORD};'
+    'TrustServerCertificate=yes;'
+    'Encrypt=yes;'
+    'Connection Timeout=30;'
+)
+
+def conectar_sql_server():
+    conn_str = (
+        f'DRIVER={{ODBC Driver 17 for SQL Server}};'
+        f'SERVER={SERVER};'
+        f'DATABASE={DATABASE};'
+        f'UID={USERNAME};'
+        f'PWD={PASSWORD};'
+        'TrustServerCertificate=yes;'
+        'Encrypt=yes;'
+        'Connection Timeout=30;'
     )
+    logger.debug(f"Tentando conectar ao banco de dados: {SERVER}/{DATABASE}")
+    try:
+        conn = pyodbc.connect(conn_str)
+        logger.info("Conexão com o banco de dados estabelecida com sucesso")
+        return conn
+    except pyodbc.Error as e:
+        logger.error(f"Erro ao conectar ao banco de dados: {e}")
+        logger.error(f"String de conexão utilizada: {conn_str}")
+        raise
 
 @cache.memoize(timeout=60)
 def obter_contagens():
-    conn = conectar_mysql()
+    conn = conectar_sql_server()
     cursor = conn.cursor()
     queries = {
         'pedidos_entregar': """
@@ -53,12 +82,12 @@ def obter_contagens():
         AND (Ped_Status <> 'Baixado' OR Ped_Status IS NULL)
         AND (Ped_Status <> 'Saida' OR Ped_Status IS NULL)
         AND (Ped_Status <> 'Pedido' OR Ped_Status IS NULL)
-        AND (DATE_ADD(Ped_Data, INTERVAL 3 DAY) >= DATE_SUB(CURDATE(), INTERVAL 30 DAY))
-        AND (DATE_ADD(Ped_Data, INTERVAL 3 DAY) < DATE_ADD(CURDATE(), INTERVAL 1 DAY))
+        AND (DATEADD(day, 3, Ped_Data) >= DATEADD(day, -30, CAST(GETDATE() AS date)))
+        AND (DATEADD(day, 3, Ped_Data) < DATEADD(day, 1, CAST(GETDATE() AS date)))
         AND (Cli_Nome <> 'FUNCIONARIOS DA ELMAR ME' OR Cli_Nome IS NULL)
         AND (Transportadora <> 'O PROPRIO')
-        AND (DATE_ADD(ColetaDt, INTERVAL 3 DAY) >= DATE_SUB(CURDATE(), INTERVAL 20 DAY))
-        AND (DATE_ADD(ColetaDt, INTERVAL 3 DAY) < DATE_ADD(CURDATE(), INTERVAL 1 DAY))
+        AND (DATEADD(day, 3, ColetaDt) >= DATEADD(day, -20, CAST(GETDATE() AS date)))
+        AND (DATEADD(day, 3, ColetaDt) < DATEADD(day, 1, CAST(GETDATE() AS date)))
         """,
         'pedidos_retirar': """
         SELECT COUNT(*) AS count
@@ -84,17 +113,17 @@ def obter_contagens():
     resultados = {}
     for nome, query in queries.items():
         cursor.execute(query)
-        resultados[nome] = cursor.fetchone()['count']
+        resultados[nome] = cursor.fetchone()[0]
     conn.close()
     return resultados
 
 @cache.memoize(timeout=60)
 def obter_pedidos_entregar():
-    conn = conectar_mysql()
+    conn = conectar_sql_server()
     cursor = conn.cursor()
     query = """
-    SELECT Pedido AS numero, Cli_Nome AS cliente, 
-           DATE_FORMAT(Ped_Data, '%d/%m/%Y') AS data, Ped_Status AS status
+    SELECT TOP 10 Pedido AS numero, Cli_Nome AS cliente, 
+           CONVERT(VARCHAR, Ped_Data, 103) AS data, Ped_Status AS status
     FROM dbo.VIEW_PB_Pedidos
     WHERE (ES = 'S')
     AND (Ped_Status <> 'Baixado' OR Ped_Status IS NULL)
@@ -102,39 +131,37 @@ def obter_pedidos_entregar():
     AND (Ped_Status <> 'Saida' OR Ped_Status IS NULL)
     AND (Ped_Status <> 'Pedido' OR Ped_Status IS NULL)
     ORDER BY Ped_Data DESC
-    LIMIT 10
     """
     cursor.execute(query)
-    resultados = cursor.fetchall()
+    resultados = [dict(zip([column[0] for column in cursor.description], row)) for row in cursor.fetchall()]
     conn.close()
     return resultados
 
 @cache.memoize(timeout=60)
 def obter_transportadoras_atrasadas():
-    conn = conectar_mysql()
+    conn = conectar_sql_server()
     cursor = conn.cursor()
     query = """
-    SELECT Transportadora AS nome, Cli_Nome AS cliente, 
-           DATE_FORMAT(DATE_ADD(Ped_Data, INTERVAL 3 DAY), '%d/%m/%Y') AS data_prevista, 
-           DATEDIFF(CURDATE(), DATE_ADD(Ped_Data, INTERVAL 3 DAY)) AS dias_atraso
+    SELECT TOP 10 Transportadora AS nome, Cli_Nome AS cliente, 
+           CONVERT(VARCHAR, DATEADD(day, 3, Ped_Data), 103) AS data_prevista, 
+           DATEDIFF(day, DATEADD(day, 3, Ped_Data), GETDATE()) AS dias_atraso
     FROM dbo.VIEW_PB_Pedidos
     WHERE (ES = 'S')
     AND (Ped_Status <> 'Baixado' OR Ped_Status IS NULL)
     AND (Ped_Status <> 'Saida' OR Ped_Status IS NULL)
     AND (Ped_Status <> 'Pedido' OR Ped_Status IS NULL)
-    AND (DATE_ADD(Ped_Data, INTERVAL 3 DAY) < CURDATE())
+    AND (DATEADD(day, 3, Ped_Data) < GETDATE())
     AND (Cli_Nome <> 'FUNCIONARIOS DA ELMAR ME' OR Cli_Nome IS NULL)
     AND (Transportadora <> 'O PROPRIO')
     ORDER BY dias_atraso DESC
-    LIMIT 10
     """
     cursor.execute(query)
-    resultados = cursor.fetchall()
+    resultados = [dict(zip([column[0] for column in cursor.description], row)) for row in cursor.fetchall()]
     conn.close()
     return resultados
 
 def job():
-    print(f"Atualizando contagens... {datetime.now()}")
+    logger.info(f"Atualizando contagens... {datetime.now()}")
     cache.delete_memoized(obter_contagens)
     cache.delete_memoized(obter_pedidos_entregar)
     cache.delete_memoized(obter_transportadoras_atrasadas)
@@ -166,6 +193,15 @@ def get_updated_data():
         'pedidos_entregar': pedidos_entregar,
         'transportadoras_atrasadas': transportadoras_atrasadas
     })
+
+@app.route('/test_connection')
+def test_connection():
+    try:
+        conn = conectar_sql_server()
+        conn.close()
+        return "Conexão bem-sucedida!"
+    except Exception as e:
+        return f"Falha na conexão: {str(e)}"
 
 def run_schedule():
     while True:
