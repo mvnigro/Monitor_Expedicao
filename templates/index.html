@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="refresh" content="300">
+    <title>Expedição</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+    <button id="fullscreen-btn" class="fullscreen-btn">Tela Cheia</button>
+    <div id="loadingIndicator" style="display: none;">Atualizando dados...</div>
+
+
+    <h1>Expedição</h1>
+    
+    <div id="contagens">
+        <p>Pedidos a entregar: <span id="pedidosEntregar"></span></p>
+        <p>Transportadoras atrasadas: <span id="transportadorasAtrasadas"></span></p>
+        <p>Pedidos a retirar: <span id="pedidosRetirar"></span></p>
+        <p>Total de transportadoras: <span id="transportadorasTotal"></span></p>
+    </div>
+
+    <h2>Entregas</h2>
+    <table id="tabelaPedidos">
+        <thead>
+            <tr>
+                <th>Número do Pedido</th>
+                <th>Cliente</th>
+                <th>Data do Pedido</th>
+                <th>Status</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+
+    <h2>Transportadoras Atrasadas</h2>
+    <table id="tabelaTransportadoras">
+        <thead>
+            <tr>
+                <th>Transportadora</th>
+                <th>Cliente</th>
+                <th>Data Prevista</th>
+                <th>Dias de Atraso</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+    <script src="{{ url_for('static', filename='fullscreen.js') }}"></script>
+
+    
+</body>
+</html>
