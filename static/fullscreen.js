@@ -3,7 +3,7 @@ document.addEventListener('DOMContentLoaded', () => {
     
     fullscreenBtn.addEventListener('click', () => {
         if (!document.fullscreenElement) {
-            if (document.documentElement.requestFullscreen) {
+            if (document.documentElement.requestFullscreen) { // Verifica se a API de tela cheia é suportada
                 document.documentElement.requestFullscreen();
             } else if (document.documentElement.mozRequestFullScreen) { // Firefox
                 document.documentElement.mozRequestFullScreen();
@@ -12,9 +12,9 @@ document.addEventListener('DOMContentLoaded', () => {
             } else if (document.documentElement.msRequestFullscreen) { // Internet Explorer/Edge
                 document.documentElement.msRequestFullscreen();
             }
-            fullscreenBtn.textContent = 'Sair da Tela Cheia';
+            fullscreenBtn.textContent = 'Sair da Tela Cheia'; // Atualiza o texto do botão
         } else {
-            if (document.exitFullscreen) {
+            if (document.exitFullscreen) { // Verifica se a API de saída de tela cheia é suportada
                 document.exitFullscreen();
             } else if (document.mozCancelFullScreen) { // Firefox
                 document.mozCancelFullScreen();
