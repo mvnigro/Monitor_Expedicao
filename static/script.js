@@ -86,7 +86,10 @@ function atualizarDados() {
     fetchData();
 }
 
-// Inicialização
+    // Recarregar a página a cada 30 segundos
+    setInterval(() => {
+        location.reload();
+    }, 30 * 1000);
 document.addEventListener('DOMContentLoaded', function() {
     // Chama a função de atualização imediatamente
     atualizarDados();
