@@ -90,6 +90,8 @@ function atualizarDados() {
     setInterval(() => {
         location.reload();
     }, 30 * 1000);
+    
+    // Chama a função de atualização imediatamente
 document.addEventListener('DOMContentLoaded', function() {
     // Chama a função de atualização imediatamente
     atualizarDados();
