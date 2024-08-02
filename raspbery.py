@@ -146,11 +146,30 @@ def obter_transportadoras_atrasadas():
     conn.close()
     return resultados
 
+@cache.memoize(timeout=60)
+def obter_pedidos_lalamove():
+    conn = conectar_sql_server()
+    cursor = conn.cursor()
+    query = """
+    SELECT TOP 10 Pedido AS numero, Cli_Nome AS cliente, 
+           CONVERT(VARCHAR, Ped_Data, 103) AS data, Ped_Status AS status
+    FROM dbo.VIEW_PB_Pedidos
+    WHERE (ES = 'S')
+    AND (Ped_Status <> 'Baixado' OR Ped_Status IS NULL)
+    AND (Transportadora = 'LALAMOVE')
+    ORDER BY Ped_Data DESC
+    """
+    cursor.execute(query)
+    resultados = [dict(zip([column[0] for column in cursor.description], row)) for row in cursor.fetchall()]
+    conn.close()
+    return resultados
+
 def job():
     logger.info(f"Atualizando contagens... {datetime.now()}")
     cache.delete_memoized(obter_contagens)
     cache.delete_memoized(obter_pedidos_entregar)
     cache.delete_memoized(obter_transportadoras_atrasadas)
+    cache.delete_memoized(obter_pedidos_lalamove)
     return obter_contagens()
 
 @app.route('/')
@@ -159,7 +178,8 @@ def dashboard():
     contagens = obter_contagens()
     pedidos_entregar = obter_pedidos_entregar()
     transportadoras_atrasadas = obter_transportadoras_atrasadas()
-    return render_template('index.html', contagens=contagens, pedidos_entregar=pedidos_entregar, transportadoras_atrasadas=transportadoras_atrasadas)
+    pedidos_lalamove = obter_pedidos_lalamove()
+    return render_template('index.html', contagens=contagens, pedidos_entregar=pedidos_entregar, transportadoras_atrasadas=transportadoras_atrasadas, pedidos_lalamove=pedidos_lalamove)
 
 @app.route('/static/<path:filename>')
 def serve_static(filename):
@@ -174,10 +194,12 @@ def get_updated_data():
     contagens = obter_contagens()
     pedidos_entregar = obter_pedidos_entregar()
     transportadoras_atrasadas = obter_transportadoras_atrasadas()
+    pedidos_lalamove = obter_pedidos_lalamove()
     return jsonify({
         'contagens': contagens,
         'pedidos_entregar': pedidos_entregar,
-        'transportadoras_atrasadas': transportadoras_atrasadas
+        'transportadoras_atrasadas': transportadoras_atrasadas,
+        'pedidos_lalamove': pedidos_lalamove
     })
 
 @app.route('/test_connection')

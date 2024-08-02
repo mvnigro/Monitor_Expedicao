@@ -58,6 +58,24 @@ function preencherTabelaTransportadoras(transportadoras) {
     }
 }
 
+// Função para preencher a tabela de pedidos LALAMOVE
+function preencherTabelaLalamove(pedidos) {
+    if (pedidos && pedidos.length > 0) {
+        const tbody = document.querySelector('#tabelaLalamove tbody');
+        tbody.innerHTML = '';
+        pedidos.forEach(pedido => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${pedido.numero}</td>
+                <td>${pedido.cliente}</td>
+                <td>${pedido.data}</td>
+                <td>${pedido.status}</td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+}
+
 // Função para atualizar os dados
 function atualizarDados() {
     const loadingIndicator = document.getElementById('loadingIndicator');
@@ -70,6 +88,7 @@ function atualizarDados() {
                 preencherContagens(data.contagens);
                 preencherTabelaPedidos(data.pedidos_entregar);
                 preencherTabelaTransportadoras(data.transportadoras_atrasadas);
+                preencherTabelaLalamove(data.pedidos_lalamove);
                 loadingIndicator.style.display = 'none';
             })
             .catch(error => {
