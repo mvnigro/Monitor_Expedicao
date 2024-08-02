@@ -154,10 +154,11 @@ def obter_pedidos_lalamove():
     SELECT TOP 10 Pedido AS numero, Cli_Nome AS cliente, 
            CONVERT(VARCHAR, Ped_Data, 103) AS data, Ped_Status AS status
     FROM dbo.VIEW_PB_Pedidos
-    WHERE (ES = 'S')
-    AND (Ped_Status <> 'Baixado' OR Ped_Status IS NULL)
+    WHERE (Ped_Status <> 'Baixado' OR Ped_Status IS NULL)
+    AND (Ped_Status <> 'Comprado' OR Ped_Status IS NULL)
+    AND (Ped_Status <> 'Saida' OR Ped_Status IS NULL)
     AND (Transportadora = 'LALAMOVE')
-    ORDER BY Ped_Data DESC
+    ORDER BY Cli_Nome ASC, Pedido ASC, Ped_Status ASC
     """
     cursor.execute(query)
     resultados = [dict(zip([column[0] for column in cursor.description], row)) for row in cursor.fetchall()]
