@@ -68,12 +68,12 @@ def obter_contagens():
         AND (Ped_Status <> 'Baixado' OR Ped_Status IS NULL)
         AND (Ped_Status <> 'Saida' OR Ped_Status IS NULL)
         AND (Ped_Status <> 'Pedido' OR Ped_Status IS NULL)
-        AND (DATEADD(day, 3, Ped_Data) >= DATEADD(day, -30, CAST(GETDATE() AS date)))
-        AND (DATEADD(day, 3, Ped_Data) < DATEADD(day, 1, CAST(GETDATE() AS date)))
+        AND (DATEADD(day, 4, Ped_Data) >= DATEADD(day, -30, CAST(GETDATE() AS date)))
+        AND (DATEADD(day, 4, Ped_Data) < DATEADD(day, 1, CAST(GETDATE() AS date)))
         AND (Cli_Nome <> 'FUNCIONARIOS DA ELMAR ME' OR Cli_Nome IS NULL)
         AND (Transportadora <> 'O PROPRIO')
-        AND (DATEADD(day, 3, ColetaDt) >= DATEADD(day, -20, CAST(GETDATE() AS date)))
-        AND (DATEADD(day, 3, ColetaDt) < DATEADD(day, 1, CAST(GETDATE() AS date)))
+        AND (DATEADD(day, 4, ColetaDt) >= DATEADD(day, -20, CAST(GETDATE() AS date)))
+        AND (DATEADD(day, 4, ColetaDt) < DATEADD(day, 1, CAST(GETDATE() AS date)))
         """,
         'pedidos_retirar': """
         SELECT COUNT(*) AS count
@@ -129,14 +129,14 @@ def obter_transportadoras_atrasadas():
     cursor = conn.cursor()
     query = """
     SELECT TOP 10 Transportadora AS nome, Cli_Nome AS cliente, 
-           CONVERT(VARCHAR, DATEADD(day, 3, Ped_Data), 103) AS data_prevista, 
-           DATEDIFF(day, DATEADD(day, 3, Ped_Data), GETDATE()) AS dias_atraso
+           CONVERT(VARCHAR, DATEADD(day, 4, Ped_Data), 103) AS data_prevista, 
+           DATEDIFF(day, DATEADD(day, 4, Ped_Data), GETDATE()) AS dias_atraso
     FROM dbo.VIEW_PB_Pedidos
     WHERE (ES = 'S')
     AND (Ped_Status <> 'Baixado' OR Ped_Status IS NULL)
     AND (Ped_Status <> 'Saida' OR Ped_Status IS NULL)
     AND (Ped_Status <> 'Pedido' OR Ped_Status IS NULL)
-    AND (DATEADD(day, 3, Ped_Data) < GETDATE())
+    AND (DATEADD(day, 4, Ped_Data) < GETDATE())
     AND (Cli_Nome <> 'FUNCIONARIOS DA ELMAR ME' OR Cli_Nome IS NULL)
     AND (Transportadora <> 'O PROPRIO')
     ORDER BY dias_atraso DESC
