@@ -21,44 +21,52 @@
         <p>Total de transportadoras: <span id="transportadorasTotal"></span></p>
     </div>
 
-    <h2>Entregas</h2>
-    <table id="tabelaPedidos">
-        <thead>
-            <tr>
-                <th>Número do Pedido</th>
-                <th>Cliente</th>
-                <th>Data do Pedido</th>
-                <th>Status</th>
-            </tr>
-        </thead>
-        <tbody></tbody>
-    </table>
+    <div class="table-container">
+        <div class="table-column">
+            <h2>Entregas</h2>
+            <table id="tabelaPedidos">
+                <thead>
+                    <tr>
+                        <th>Número do Pedido</th>
+                        <th>Cliente</th>
+                        <th>Data do Pedido</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
 
-    <h2>Pedidos LALAMOVE</h2>
-    <table id="tabelaLalamove">
-        <thead>
-            <tr>
-                <th>Número do Pedido</th>
-                <th>Cliente</th>
-                <th>Data do Pedido</th>
-                <th>Status</th>
-            </tr>
-        </thead>
-        <tbody></tbody>
-    </table>
+        <div class="table-column">
+            <h2>Pedidos LALAMOVE</h2>
+            <table id="tabelaLalamove">
+                <thead>
+                    <tr>
+                        <th>Número do Pedido</th>
+                        <th>Cliente</th>
+                        <th>Data do Pedido</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
 
-    <h2>Transportadoras Atrasadas</h2>
-    <table id="tabelaTransportadoras">
-        <thead>
-            <tr>
-                <th>Transportadora</th>
-                <th>Cliente</th>
-                <th>Data Prevista</th>
-                <th>Dias de Atraso</th>
-            </tr>
-        </thead>
-        <tbody></tbody>
-    </table>
+        <div class="table-column">
+            <h2>Transportadoras Atrasadas</h2>
+            <table id="tabelaTransportadoras">
+                <thead>
+                    <tr>
+                        <th>Transportadora</th>
+                        <th>Cliente</th>
+                        <th>Data Prevista</th>
+                        <th>Dias de Atraso</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </div>
 
     <script src="{{ url_for('static', filename='script.js') }}"></script>
     <script src="{{ url_for('static', filename='fullscreen.js') }}"></script>
