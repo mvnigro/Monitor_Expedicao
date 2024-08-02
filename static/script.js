@@ -23,10 +23,10 @@ function atualizarContagem(id, valor) {
 }
 
 // Função para preencher a tabela de pedidos
-function preencherTabelaPedidos(pedidos) {
+function preencherTabelaPedidos(pedidos, tableId) {
     if (pedidos && pedidos.length > 0) {
-        const tbody = document.querySelector('#tabelaPedidos tbody');
-        tbody.innerHTML = '';
+        const tbody = document.querySelector(`#${tableId} tbody`);
+        const newTbody = document.createElement('tbody');
         pedidos.forEach(pedido => {
             const tr = document.createElement('tr');
             tr.innerHTML = `
@@ -35,8 +35,9 @@ function preencherTabelaPedidos(pedidos) {
                 <td>${pedido.data}</td>
                 <td>${pedido.status}</td>
             `;
-            tbody.appendChild(tr);
+            newTbody.appendChild(tr);
         });
+        tbody.parentNode.replaceChild(newTbody, tbody);
     }
 }
 
@@ -44,7 +45,7 @@ function preencherTabelaPedidos(pedidos) {
 function preencherTabelaTransportadoras(transportadoras) {
     if (transportadoras && transportadoras.length > 0) {
         const tbody = document.querySelector('#tabelaTransportadoras tbody');
-        tbody.innerHTML = '';
+        const newTbody = document.createElement('tbody');
         transportadoras.forEach(transportadora => {
             const tr = document.createElement('tr');
             tr.innerHTML = `
@@ -53,26 +54,9 @@ function preencherTabelaTransportadoras(transportadoras) {
                 <td>${transportadora.data_prevista}</td>
                 <td>${transportadora.dias_atraso}</td>
             `;
-            tbody.appendChild(tr);
+            newTbody.appendChild(tr);
         });
-    }
-}
-
-// Função para preencher a tabela de pedidos LALAMOVE
-function preencherTabelaLalamove(pedidos) {
-    if (pedidos && pedidos.length > 0) {
-        const tbody = document.querySelector('#tabelaLalamove tbody');
-        tbody.innerHTML = '';
-        pedidos.forEach(pedido => {
-            const tr = document.createElement('tr');
-            tr.innerHTML = `
-                <td>${pedido.numero}</td>
-                <td>${pedido.cliente}</td>
-                <td>${pedido.data}</td>
-                <td>${pedido.status}</td>
-            `;
-            tbody.appendChild(tr);
-        });
+        tbody.parentNode.replaceChild(newTbody, tbody);
     }
 }
 
@@ -86,9 +70,9 @@ function atualizarDados() {
             .then(response => response.json())
             .then(data => {
                 preencherContagens(data.contagens);
-                preencherTabelaPedidos(data.pedidos_entregar);
+                preencherTabelaPedidos(data.pedidos_entregar, 'tabelaPedidos');
                 preencherTabelaTransportadoras(data.transportadoras_atrasadas);
-                preencherTabelaLalamove(data.pedidos_lalamove);
+                preencherTabelaPedidos(data.pedidos_lalamove, 'tabelaLalamove');
                 loadingIndicator.style.display = 'none';
             })
             .catch(error => {
@@ -105,12 +89,6 @@ function atualizarDados() {
     fetchData();
 }
 
-    // Recarregar a página a cada 30 segundos
-    setInterval(() => {
-        location.reload();
-    }, 30 * 1000);
-    
-    // Chama a função de atualização imediatamente
 document.addEventListener('DOMContentLoaded', function() {
     // Chama a função de atualização imediatamente
     atualizarDados();
