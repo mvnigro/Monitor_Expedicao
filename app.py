@@ -11,6 +11,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+
 # Configurações do SQL Server
 SERVER = os.environ.get('SERVER')
 DATABASE = os.environ.get('DATABASE')
@@ -87,7 +88,7 @@ def obter_pedidos_entregar():
     conn = conectar_sql_server()
     cursor = conn.cursor()
     query = """
-    SELECT TOP 10 Pedido AS numero, Cli_Nome AS cliente, 
+    SELECT TOP 10 Pedido AS numero, Cli_Nome AS cliente,
            CONVERT(VARCHAR, Ped_Data, 103) AS data, Ped_Status AS status
     FROM dbo.VIEW_PB_Pedidos
     WHERE (ES = 'S')
@@ -107,8 +108,8 @@ def obter_transportadoras_atrasadas():
     conn = conectar_sql_server()
     cursor = conn.cursor()
     query = """
-    SELECT TOP 10 Transportadora AS nome, Cli_Nome AS cliente, 
-           CONVERT(VARCHAR, DATEADD(day, 3, Ped_Data), 103) AS data_prevista, 
+    SELECT TOP 10 Transportadora AS nome, Cli_Nome AS cliente,
+           CONVERT(VARCHAR, DATEADD(day, 3, Ped_Data), 103) AS data_prevista,
            DATEDIFF(day, DATEADD(day, 3, Ped_Data), GETDATE()) AS dias_atraso
     FROM dbo.VIEW_PB_Pedidos
     WHERE (ES = 'S')
